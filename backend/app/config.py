@@ -21,6 +21,12 @@ class Settings:
     # Vector DB / RAG Directory
     CHROMA_PERSIST_DIR: str = os.getenv("CHROMA_PERSIST_DIR", os.path.join(BASE_DIR, "chroma_db"))
     
+    # SMTP Email Settings for Real Email Notifications
+    SMTP_SERVER: str = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    
     # CORS Origins
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000", "*"]
 
