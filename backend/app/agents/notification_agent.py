@@ -48,7 +48,6 @@ class NotificationAgent(BaseAgent):
             logger.error(f"[{self.name}] Failed to send email via SMTP: {e}")
 
     def send_real_email(self, recipient: str, subject: str, body: str) -> bool:
-        # Dynamically read OS environment variables (Render UI / local .env)
         smtp_user = (os.getenv("SMTP_USER") or getattr(settings, "SMTP_USER", "") or "").strip()
         smtp_pass = (os.getenv("SMTP_PASSWORD") or getattr(settings, "SMTP_PASSWORD", "") or "").strip()
         smtp_server = (os.getenv("SMTP_SERVER") or getattr(settings, "SMTP_SERVER", "smtp.gmail.com") or "smtp.gmail.com").strip()
@@ -62,14 +61,45 @@ class NotificationAgent(BaseAgent):
             logger.info(f"[{self.name}] SMTP_USER or SMTP_PASSWORD not set in environment. Email recorded in DB.")
             return False
 
-        # Launch non-blocking background thread so API response is instant
-        t = threading.Thread(
-            target=self._async_smtp_send,
-            args=(recipient, subject, body, smtp_server, smtp_port, smtp_user, smtp_pass),
-            daemon=True
-        )
-        t.start()
-        return True
+        # Attempt fast synchronous dispatch (4s timeout) to guarantee delivery confirmation
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = smtp_user
+            msg['To'] = recipient
+            msg['Subject'] = subject
+
+            html_body = f"""
+            <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 12px;">
+              <div style="background-color: #0f172a; padding: 16px 24px; border-radius: 8px; margin-bottom: 20px;">
+                <h2 style="color: #10b981; margin: 0; font-size: 1.4rem;">🏛️ CivicFlow AI - Vellore Municipal Corporation</h2>
+              </div>
+              <p style="font-size: 1rem; line-height: 1.5; color: #334155;">{body}</p>
+              <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 0.85rem; color: #64748b;">
+                <p style="margin: 0;">This is an automated real-time dispatch from the Autonomous Municipal OS.</p>
+                <p style="margin: 4px 0 0 0;">Vellore Corporation Command & Control Center</p>
+              </div>
+            </div>
+            """
+            msg.attach(MIMEText(html_body, 'html'))
+
+            server = smtplib.SMTP(smtp_server, smtp_port, timeout=4)
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            server.quit()
+            logger.info(f"[{self.name}] Real email successfully sent via SMTP to {recipient}")
+            return True
+        except Exception as e:
+            logger.warning(f"[{self.name}] Sync SMTP send fast attempt failed ({e}). Spawning non-daemon background dispatch...")
+            
+            # Fallback to non-daemon thread so Uvicorn doesn't kill it during response return
+            t = threading.Thread(
+                target=self._async_smtp_send,
+                args=(recipient, subject, body, smtp_server, smtp_port, smtp_user, smtp_pass),
+                daemon=False
+            )
+            t.start()
+            return True
 
     def execute(self, inputs: dict) -> dict:
         complaint_id = inputs.get("complaint_id", "N/A")
