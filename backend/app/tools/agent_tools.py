@@ -223,7 +223,7 @@ def create_complaint_record_tool(
     sla_hours: int,
     image_url: str = None,
     detected_labels: list = None,
-    user_email: str = "citizen@vellore.gov"
+    user_email: str = "prakashranjanr8@gmail.com"
 ) -> dict:
     db = SessionLocal()
     try:

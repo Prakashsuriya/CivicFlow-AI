@@ -36,7 +36,7 @@ class PlannerAgent(BaseAgent):
         address = inputs.get("address", "")
         lat = inputs.get("latitude")
         lng = inputs.get("longitude")
-        user_email = inputs.get("email", "citizen@vellore.gov")
+        user_email = inputs.get("email", "prakashranjanr8@gmail.com")
 
         logger.info(f"[{self.name}] Beginning autonomous planning execution flow for category hint '{category_input}'...")
 

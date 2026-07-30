@@ -131,7 +131,7 @@ export default function CitizenPortal({ onNavigateToTrack }) {
         address: address || "Sathuvachari, Vellore, Tamil Nadu",
         latitude: parseFloat(lat) || 12.9324,
         longitude: parseFloat(lng) || 79.1601,
-        email: "citizen@vellore.gov"
+        email: "prakashranjanr8@gmail.com"
       });
 
       setResult(res);

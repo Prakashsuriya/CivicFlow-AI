@@ -20,7 +20,7 @@ class ComplaintSubmitRequest(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    email: Optional[str] = "citizen@vellore.gov"
+    email: Optional[str] = "prakashranjanr8@gmail.com"
 
 class StatusUpdateRequest(BaseModel):
     status: str # submitted, in_progress, resolved, rejected
