@@ -7,6 +7,8 @@ from app.database.models import Complaint, ComplaintStatusLog, ComplaintImage, D
 from app.agents.planner_agent import PlannerAgent
 from app.utils.logger import logger
 
+from app.utils.ws import ws_manager
+
 router = APIRouter(prefix="/complaints", tags=["Complaints"])
 
 planner = PlannerAgent()
@@ -34,6 +36,14 @@ async def submit_complaint(req: ComplaintSubmitRequest):
     logger.info(f"Received complaint submission request for category '{req.category}': '{req.prompt}'")
     try:
         result = planner.execute(req.model_dump())
+        # Broadcast WebSocket event for new complaint
+        await ws_manager.broadcast({
+            "event": "NEW_COMPLAINT",
+            "complaint_id": result.get("complaint_id"),
+            "category": result.get("category"),
+            "ward": result.get("ward"),
+            "severity": result.get("severity")
+        })
         return result
     except Exception as e:
         logger.error(f"Error executing Planner Agent: {e}")
@@ -114,7 +124,7 @@ def get_complaint_detail(complaint_id: str, db: Session = Depends(get_db)):
     }
 
 @router.put("/{complaint_id}/status")
-def update_complaint_status(complaint_id: str, req: StatusUpdateRequest, db: Session = Depends(get_db)):
+async def update_complaint_status(complaint_id: str, req: StatusUpdateRequest, db: Session = Depends(get_db)):
     complaint = db.query(Complaint).filter(Complaint.id == complaint_id).first()
     if not complaint:
         raise HTTPException(status_code=404, detail="Complaint not found")
@@ -136,5 +146,14 @@ def update_complaint_status(complaint_id: str, req: StatusUpdateRequest, db: Ses
     db.add(log)
     db.commit()
     db.refresh(complaint)
+    
+    # Broadcast WebSocket status update
+    await ws_manager.broadcast({
+        "event": "STATUS_UPDATE",
+        "complaint_id": complaint_id,
+        "old_status": old_status,
+        "new_status": req.status,
+        "updated_by": req.updated_by
+    })
     
     return {"message": "Status updated successfully", "complaint_id": complaint_id, "new_status": complaint.status}

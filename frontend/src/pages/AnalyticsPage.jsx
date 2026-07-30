@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAnalyticsOverviewAPI } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, CheckCircle, Clock, Layers } from 'lucide-react';
+import { TrendingUp, CheckCircle, Clock, Layers, Download, Printer } from 'lucide-react';
 
 export default function AnalyticsPage() {
   const [data, setData] = useState(null);
@@ -22,6 +22,33 @@ export default function AnalyticsPage() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (!data) return;
+    const { metrics, categories, wards } = data;
+    const rows = [
+      ["Metric", "Value"],
+      ["Total Complaints", metrics.total_complaints],
+      ["Resolution Rate", `${metrics.resolution_rate_pct}%`],
+      ["In Progress", metrics.in_progress],
+      ["Avg Resolution SLA Hours", metrics.avg_resolution_hours],
+      [],
+      ["Category", "Count"],
+      ...categories.map(c => [c.name, c.value]),
+      [],
+      ["Ward", "Complaint Count"],
+      ...wards.map(w => [w.name, w.count])
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "vellore_civicflow_analytics.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (loading || !data) {
     return (
       <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af' }}>
@@ -35,11 +62,30 @@ export default function AnalyticsPage() {
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 1rem' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Vellore Municipal Intelligence & Analytics</h1>
-        <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
-          Real-time AI metrics, ward complaint density, and resolution efficiency index across Vellore Wards.
-        </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>Vellore Municipal Intelligence & Analytics</h1>
+          <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
+            Real-time AI metrics, ward complaint density, and resolution efficiency index across Vellore Wards.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={handleExportCSV}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+          >
+            <Download size={16} color="#34d399" /> Export CSV Data
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+          >
+            <Printer size={16} /> Printable PDF Report
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards Responsive Grid */}

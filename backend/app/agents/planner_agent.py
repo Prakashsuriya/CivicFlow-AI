@@ -122,6 +122,29 @@ class PlannerAgent(BaseAgent):
             routing
         )
 
+        # Step 5.5: Duplicate Detection Check
+        from app.tools.agent_tools import check_duplicate_complaint_tool
+        dup_check = check_duplicate_complaint_tool(ward=resolved_ward, category=category)
+        is_duplicate = dup_check.get("is_duplicate", False)
+        merged_ticket_id = dup_check.get("existing_id")
+
+        if is_duplicate:
+            log_step(
+                "5.5 Semantic Duplicate Detection",
+                "Duplicate Detection Agent",
+                f"Scanning active tickets in {resolved_ward} for category '{category}'.",
+                f"⚠️ Active duplicate ticket found: #{merged_ticket_id}. Merging report & incrementing priority.",
+                dup_check
+            )
+        else:
+            log_step(
+                "5.5 Semantic Duplicate Detection",
+                "Duplicate Detection Agent",
+                f"Scanning active tickets in {resolved_ward} for category '{category}'.",
+                "No active duplicate tickets found in this ward. Proceeding to new ticket registration.",
+                dup_check
+            )
+
         # Step 6: Database Complaint Record Creation
         title = f"{category} Report - {resolved_ward}"
         complaint_res = self.complaint_agent.execute({
@@ -145,7 +168,7 @@ class PlannerAgent(BaseAgent):
             "6. Database Lifecycle & Audit Log",
             self.complaint_agent.name,
             f"Creating official tracking ID and audit trail in SQLite DB.",
-            f"Generated Complaint ID: {complaint_id}",
+            f"Generated Complaint ID: {complaint_id}" if not is_duplicate else f"Registered report under ticket: {complaint_id} (Merged with #{merged_ticket_id})",
             complaint_data
         )
 
@@ -198,5 +221,7 @@ class PlannerAgent(BaseAgent):
             "ward": resolved_ward,
             "department": dept_name,
             "sla_hours": sla_hours,
+            "is_duplicate": is_duplicate,
+            "merged_ticket_id": merged_ticket_id,
             "reasoning_trace": reasoning_trace
         }

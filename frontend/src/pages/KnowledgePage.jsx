@@ -76,13 +76,8 @@ export default function KnowledgePage() {
               placeholder="Ask any question regarding municipal rules, SLAs, emergency contacts..."
               style={{
                 width: '100%',
-                background: 'rgba(17, 24, 39, 0.9)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
                 padding: '0.85rem 1rem 0.85rem 2.8rem',
-                color: '#f9fafb',
-                fontSize: '0.95rem',
-                outline: 'none'
+                fontSize: '0.95rem'
               }}
             />
           </div>

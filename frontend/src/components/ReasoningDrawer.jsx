@@ -54,8 +54,8 @@ export default function ReasoningDrawer({ reasoningTrace }) {
             <div
               key={idx}
               style={{
-                background: 'rgba(17, 24, 39, 0.6)',
-                border: isExpanded ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255, 255, 255, 0.05)',
+                background: 'var(--card-inner-bg)',
+                border: isExpanded ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid var(--border-color)',
                 borderRadius: '12px',
                 overflow: 'hidden',
                 transition: 'all 0.2s ease'
@@ -75,10 +75,10 @@ export default function ReasoningDrawer({ reasoningTrace }) {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{
-                    background: 'rgba(255, 255, 255, 0.05)',
+                    background: 'rgba(16, 185, 129, 0.1)',
                     padding: '0.4rem',
                     borderRadius: '8px',
-                    color: '#38bdf8'
+                    color: '#10b981'
                   }}>
                     <Icon size={16} />
                   </div>
@@ -86,39 +86,40 @@ export default function ReasoningDrawer({ reasoningTrace }) {
                     <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, marginRight: '0.5rem' }}>
                       {step.step}
                     </span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f3f4f6' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                       {step.agent}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
                     +{step.timestamp}s
                   </span>
-                  {isExpanded ? <ChevronUp size={16} color="#9ca3af" /> : <ChevronDown size={16} color="#9ca3af" />}
+                  {isExpanded ? <ChevronUp size={16} color="var(--text-muted)" /> : <ChevronDown size={16} color="var(--text-muted)" />}
                 </div>
               </div>
 
               {/* Accordion Detail Body */}
               {isExpanded && (
-                <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '0.85rem' }}>
+                <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--border-color)', fontSize: '0.85rem' }}>
                   <div style={{ marginBottom: '0.5rem' }}>
-                    <span style={{ color: '#9ca3af', fontWeight: 600 }}>Thought Process: </span>
-                    <span style={{ color: '#d1d5db' }}>{step.thought}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Thought Process: </span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{step.thought}</span>
                   </div>
                   <div style={{ marginBottom: '0.75rem' }}>
-                    <span style={{ color: '#9ca3af', fontWeight: 600 }}>Action Executed: </span>
-                    <span style={{ color: '#34d399', fontFamily: 'monospace' }}>{step.action}</span>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Action Executed: </span>
+                    <span style={{ color: '#10b981', fontFamily: 'monospace' }}>{step.action}</span>
                   </div>
 
                   <div style={{
-                    background: 'rgba(0, 0, 0, 0.4)',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
                     padding: '0.75rem',
                     borderRadius: '8px',
                     fontFamily: 'monospace',
                     fontSize: '0.75rem',
-                    color: '#94a3b8',
+                    color: 'var(--text-secondary)',
                     overflowX: 'auto'
                   }}>
                     {typeof step.result === 'object' 

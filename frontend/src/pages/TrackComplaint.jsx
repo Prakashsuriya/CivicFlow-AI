@@ -1,12 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getComplaintDetailAPI } from '../services/api';
-import { Search, MapPin, UserCheck, Clock, ShieldAlert, CheckCircle2, History } from 'lucide-react';
+import { Search, MapPin, UserCheck, Clock, ShieldAlert, CheckCircle2, History, Radio } from 'lucide-react';
 
 export default function TrackComplaint() {
   const [complaintId, setComplaintId] = useState('');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let ws;
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/feed`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.event === 'STATUS_UPDATE' && data && msg.complaint_id === data.id) {
+            // Auto refresh complaint detail
+            getComplaintDetailAPI(data.id).then(res => setData(res)).catch(() => {});
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, [data?.id]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -48,14 +71,9 @@ export default function TrackComplaint() {
               placeholder="Enter Complaint ID (e.g. CF-2026-2001)"
               style={{
                 width: '100%',
-                background: 'rgba(17, 24, 39, 0.9)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
                 padding: '0.75rem 1rem 0.75rem 2.8rem',
-                color: '#f9fafb',
                 fontFamily: 'monospace',
-                fontSize: '0.95rem',
-                outline: 'none'
+                fontSize: '0.95rem'
               }}
             />
           </div>

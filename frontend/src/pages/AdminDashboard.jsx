@@ -13,6 +13,28 @@ export default function AdminDashboard() {
     fetchComplaints();
   }, [filterDept, filterStatus]);
 
+  useEffect(() => {
+    let ws;
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/feed`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.event === 'NEW_COMPLAINT' || msg.event === 'STATUS_UPDATE') {
+            fetchComplaints();
+          }
+        } catch (e) {}
+      };
+    } catch (e) {}
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
+
   const fetchComplaints = async () => {
     setLoading(true);
     try {
@@ -72,12 +94,9 @@ export default function AdminDashboard() {
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
           style={{
-            background: 'rgba(17, 24, 39, 0.8)',
-            border: '1px solid var(--border-color)',
-            color: '#f9fafb',
             padding: '0.5rem 1rem',
             borderRadius: '8px',
-            outline: 'none'
+            fontSize: '0.85rem'
           }}
         >
           <option value="">All Statuses</option>

@@ -48,6 +48,47 @@ export default function CitizenPortal({ onNavigateToTrack }) {
     { name: "Fort Round Road, Vellore Town", lat: "12.9230", lng: "79.1320" }
   ];
 
+  const [isListening, setIsListening] = useState(false);
+
+  const startVoiceInput = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser. Please try Chrome or Edge.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        setPrompt(prev => prev ? `${prev} ${transcript}` : transcript);
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.error("Speech recognition error:", err);
+      setIsListening(false);
+    }
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -136,7 +177,7 @@ export default function CitizenPortal({ onNavigateToTrack }) {
 
           {/* 1. Category Dropdown */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: '#38bdf8', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-cyan)', marginBottom: '0.5rem' }}>
               1. Select Civic Issue Category:
             </label>
             <select
@@ -144,22 +185,17 @@ export default function CitizenPortal({ onNavigateToTrack }) {
               onChange={(e) => setCategory(e.target.value)}
               style={{
                 width: '100%',
-                background: '#111827',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
-                borderRadius: '10px',
                 padding: '0.85rem 1rem',
-                color: '#f9fafb',
                 fontFamily: 'Outfit',
                 fontWeight: 600,
                 fontSize: '1rem',
-                outline: 'none',
                 cursor: 'pointer',
                 position: 'relative',
                 zIndex: 10
               }}
             >
               {categoriesList.map((cat, idx) => (
-                <option key={idx} value={cat} style={{ background: '#111827', color: '#f9fafb' }}>
+                <option key={idx} value={cat}>
                   📍 {cat}
                 </option>
               ))}
@@ -168,9 +204,34 @@ export default function CitizenPortal({ onNavigateToTrack }) {
 
           {/* 2. Text Description */}
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#e5e7eb', marginBottom: '0.5rem' }}>
-              2. Describe the Issue details:
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                2. Describe the Issue details:
+              </label>
+              <button
+                type="button"
+                onClick={startVoiceInput}
+                style={{
+                  background: isListening ? 'rgba(244, 63, 94, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                  border: isListening ? '1px solid #f43f5e' : '1px solid rgba(16, 185, 129, 0.4)',
+                  color: isListening ? '#f43f5e' : '#10b981',
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  transition: 'all 0.2s ease',
+                  position: 'relative',
+                  zIndex: 10
+                }}
+              >
+                <Mic size={14} className={isListening ? 'agent-pulse' : ''} />
+                {isListening ? 'Listening...' : 'Voice Dictation'}
+              </button>
+            </div>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -178,15 +239,10 @@ export default function CitizenPortal({ onNavigateToTrack }) {
               rows={3}
               style={{
                 width: '100%',
-                background: 'rgba(17, 24, 39, 0.8)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '10px',
                 padding: '0.85rem 1rem',
-                color: '#f9fafb',
                 fontFamily: 'Inter',
                 fontSize: '0.95rem',
                 resize: 'vertical',
-                outline: 'none',
                 position: 'relative',
                 zIndex: 10
               }}
@@ -195,7 +251,7 @@ export default function CitizenPortal({ onNavigateToTrack }) {
 
           {/* 3. Real Image Attachment File Upload */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: '#e5e7eb', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
               3. Attach Photo of the Issue (Gemini Vision AI Analysis):
             </label>
 
@@ -242,7 +298,7 @@ export default function CitizenPortal({ onNavigateToTrack }) {
                   borderRadius: '12px',
                   padding: '1.5rem',
                   textAlign: 'center',
-                  background: 'rgba(17, 24, 39, 0.6)',
+                  background: 'var(--card-inner-bg)',
                   cursor: 'pointer',
                   transition: 'border-color 0.2s',
                   zIndex: 5
@@ -251,10 +307,10 @@ export default function CitizenPortal({ onNavigateToTrack }) {
                 onMouseOut={(e) => e.currentTarget.style.borderColor = 'rgba(16, 185, 129, 0.4)'}
               >
                 <Upload size={32} color="#10b981" style={{ marginBottom: '0.5rem' }} />
-                <div style={{ fontSize: '0.9rem', color: '#f3f4f6', fontWeight: 600 }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                   Click here to Browse & Upload Photo
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                   Supports PNG, JPG, WEBP (Analyzed live by Gemini 2.5 Vision AI)
                 </div>
               </div>
@@ -262,8 +318,8 @@ export default function CitizenPortal({ onNavigateToTrack }) {
           </div>
 
           {/* 4. Location & Map Details — Vellore, Tamil Nadu */}
-          <div style={{ marginBottom: '1.5rem', background: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', position: 'relative', zIndex: 10 }}>
-            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#34d399', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ marginBottom: '1.5rem', background: 'var(--card-inner-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)', position: 'relative', zIndex: 10 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--accent-emerald)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <MapPin size={16} /> 4. Area & Location Details (Vellore, Tamil Nadu):
             </div>
 
@@ -276,13 +332,8 @@ export default function CitizenPortal({ onNavigateToTrack }) {
                 placeholder="e.g. Sathuvachari, Vellore, Tamil Nadu"
                 style={{
                   width: '100%',
-                  background: 'rgba(17, 24, 39, 0.8)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '8px',
                   padding: '0.75rem',
-                  color: '#f9fafb',
                   fontSize: '0.85rem',
-                  outline: 'none',
                   position: 'relative',
                   zIndex: 10
                 }}
@@ -292,18 +343,14 @@ export default function CitizenPortal({ onNavigateToTrack }) {
             {/* Lat / Lng inputs (Responsive Grid) */}
             <div className="responsive-grid-2" style={{ marginBottom: '0.75rem' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Latitude:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Latitude:</span>
                 <input
                   type="text"
                   value={lat}
                   onChange={(e) => setLat(e.target.value)}
                   style={{
                     width: '100%',
-                    background: 'rgba(17, 24, 39, 0.8)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
                     padding: '0.5rem',
-                    color: '#f9fafb',
                     fontSize: '0.8rem',
                     fontFamily: 'monospace',
                     position: 'relative',
@@ -312,18 +359,14 @@ export default function CitizenPortal({ onNavigateToTrack }) {
                 />
               </div>
               <div>
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Longitude:</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Longitude:</span>
                 <input
                   type="text"
                   value={lng}
                   onChange={(e) => setLng(e.target.value)}
                   style={{
                     width: '100%',
-                    background: 'rgba(17, 24, 39, 0.8)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
                     padding: '0.5rem',
-                    color: '#f9fafb',
                     fontSize: '0.8rem',
                     fontFamily: 'monospace',
                     position: 'relative',
@@ -427,6 +470,30 @@ export default function CitizenPortal({ onNavigateToTrack }) {
                 Tracking ID: <strong style={{ color: '#38bdf8' }}>#{result.complaint_id}</strong>
               </span>
             </div>
+
+            {result.is_duplicate && (
+              <div style={{
+                background: 'rgba(245, 158, 11, 0.15)',
+                border: '1px solid #f59e0b',
+                borderRadius: '12px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                color: '#f59e0b'
+              }}>
+                <AlertCircle size={22} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                    Duplicate Issue Merged into Active Master Ticket #{result.merged_ticket_id}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
+                    An active report for {result.category} in {result.ward} is already dispatched. Your submission was merged into master ticket #{result.merged_ticket_id} to avoid work duplication (+1 Citizen Upvote).
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Metrics responsive 4-column grid */}
             <div className="responsive-grid-4" style={{ margin: '1rem 0' }}>

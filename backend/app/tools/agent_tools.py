@@ -179,6 +179,36 @@ def department_routing_tool(category: str, severity: str = "medium") -> dict:
         "priority": "Standard"
     }
 
+# 3.5 Duplicate Detection Tool
+def check_duplicate_complaint_tool(ward: str, category: str) -> dict:
+    """
+    Checks if an active (non-resolved, non-rejected) complaint already exists
+    in the specified ward for the same or similar category.
+    """
+    db = SessionLocal()
+    try:
+        active_statuses = ["submitted", "in_progress"]
+        existing = db.query(Complaint).filter(
+            Complaint.ward == ward,
+            Complaint.category == category,
+            Complaint.status.in_(active_statuses)
+        ).order_by(Complaint.created_at.desc()).first()
+        
+        if existing:
+            return {
+                "is_duplicate": True,
+                "existing_id": existing.id,
+                "created_at": existing.created_at.isoformat() if existing.created_at else None,
+                "status": existing.status,
+                "title": existing.title
+            }
+        return {"is_duplicate": False}
+    except Exception as e:
+        logger.error(f"Error checking duplicate complaint: {e}")
+        return {"is_duplicate": False}
+    finally:
+        db.close()
+
 # 4. Database Complaint Record Creation Tool
 def create_complaint_record_tool(
     title: str,
