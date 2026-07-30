@@ -78,13 +78,36 @@ export default function InteractiveMap() {
     return c.status === filterStatus;
   });
 
+  // Calculate spiral offset for overlapping coordinates so all markers are distinctly visible
+  const coordCounts = {};
+  const processedComplaints = filteredComplaints.map(pt => {
+    const rawLat = pt.latitude || 12.9165;
+    const rawLng = pt.longitude || 79.1325;
+    const key = `${rawLat.toFixed(4)}_${rawLng.toFixed(4)}`;
+    
+    const count = coordCounts[key] || 0;
+    coordCounts[key] = count + 1;
+
+    let lat = rawLat;
+    let lng = rawLng;
+
+    if (count > 0) {
+      const angle = count * 1.25;
+      const distance = 0.00035 * Math.sqrt(count);
+      lat = rawLat + distance * Math.cos(angle);
+      lng = rawLng + distance * Math.sin(angle);
+    }
+
+    return { ...pt, displayLat: lat, displayLng: lng };
+  });
+
   return (
     <div className="glass-card" style={{ padding: '1.5rem', height: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>Vellore Municipal Ward Live Map</h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Real-time geospatial distribution of active & resolved civic complaints ({filteredComplaints.length} Total Shown)
+            Real-time geospatial distribution of active & resolved civic complaints ({processedComplaints.length} Total Shown)
           </p>
         </div>
 
@@ -143,10 +166,10 @@ export default function InteractiveMap() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {filteredComplaints.map((pt) => (
+            {processedComplaints.map((pt) => (
               <Marker 
                 key={pt.id} 
-                position={[pt.latitude || 12.9165, pt.longitude || 79.1325]}
+                position={[pt.displayLat, pt.displayLng]}
                 icon={getMarkerIcon(pt.severity, pt.status)}
               >
                 <Popup>
