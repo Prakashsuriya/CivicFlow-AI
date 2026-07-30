@@ -17,7 +17,7 @@ export default function AdminDashboard() {
     let ws;
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.hostname}:8000/ws/feed`;
+      const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.hostname}:8000/ws/feed`;
       ws = new WebSocket(wsUrl);
 
       ws.onmessage = (event) => {
