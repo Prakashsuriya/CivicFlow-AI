@@ -48,6 +48,24 @@ class Worker(Base):
     department = relationship("Department", back_populates="workers")
     complaints = relationship("Complaint", back_populates="assigned_worker")
 
+class Asset(Base):
+    __tablename__ = "assets"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, nullable=False) # e.g. Lift Tower A, Katpadi Main Transformer
+    asset_type = Column(String, nullable=False) # Lift, Transformer, Streetlight, Pipeline, Road, Drain, Gate
+    domain_type = Column(String, nullable=False, default="public_infrastructure") # public_infrastructure, residential_community, utility_provider, emergency_services
+    location_name = Column(String, nullable=False) # e.g. Greenwood Heights Block A, Sathuvachari Main Road
+    ward_or_society = Column(String, nullable=True)
+    health_score = Column(Integer, default=100) # 0-100%
+    status = Column(String, default="healthy") # healthy, warning, critical, under_maintenance
+    total_incidents = Column(Integer, default=0)
+    health_trend = Column(String, default="100% -> 95% -> 90%")
+    ai_recommendation = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    complaints = relationship("Complaint", back_populates="asset")
+
 class Complaint(Base):
     __tablename__ = "complaints"
 
@@ -58,6 +76,14 @@ class Complaint(Base):
     category = Column(String, nullable=False) # Garbage, Road, Water, Streetlight, etc.
     severity = Column(String, default="medium") # low, medium, high, critical
     status = Column(String, default="submitted") # submitted, in_progress, resolved, rejected
+    
+    # Ownership Intelligence extensions
+    domain_type = Column(String, default="public_infrastructure") # public_infrastructure, residential_community, utility_provider, emergency_services
+    responsible_authority = Column(String, default="Municipal Corporation") # e.g. Katpadi Municipal Ward 1, Greenwood Heights RWA, TANGEDCO Electricity Board
+    ownership_reasoning = Column(Text, nullable=True)
+    asset_id = Column(String, ForeignKey("assets.id"), nullable=True)
+    escalation_level = Column(Integer, default=0)
+    is_escalated = Column(Integer, default=0)
     
     department_id = Column(String, ForeignKey("departments.id"), nullable=True)
     assigned_worker_id = Column(String, ForeignKey("workers.id"), nullable=True)
@@ -75,6 +101,7 @@ class Complaint(Base):
     user = relationship("User", back_populates="complaints")
     department = relationship("Department", back_populates="complaints")
     assigned_worker = relationship("Worker", back_populates="complaints")
+    asset = relationship("Asset", back_populates="complaints")
     images = relationship("ComplaintImage", back_populates="complaint", cascade="all, delete-orphan")
     status_logs = relationship("ComplaintStatusLog", back_populates="complaint", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="complaint", cascade="all, delete-orphan")

@@ -1,14 +1,97 @@
 from datetime import datetime, timedelta
+from sqlalchemy import text
 from app.database.connection import engine, Base, SessionLocal
 from app.database.models import User, Department, Worker, Complaint, ComplaintImage, ComplaintStatusLog, Notification
 
+def check_sqlite_columns():
+    """Safety check for SQLite schema columns."""
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT domain_type FROM complaints LIMIT 1"))
+        except Exception:
+            try:
+                conn.execute(text("ALTER TABLE complaints ADD COLUMN domain_type VARCHAR DEFAULT 'public_infrastructure'"))
+            except Exception: pass
+            try:
+                conn.execute(text("ALTER TABLE complaints ADD COLUMN responsible_authority VARCHAR DEFAULT 'Vellore Municipal Corporation'"))
+            except Exception: pass
+            try:
+                conn.execute(text("ALTER TABLE complaints ADD COLUMN ownership_reasoning TEXT"))
+            except Exception: pass
+            try:
+                conn.execute(text("ALTER TABLE complaints ADD COLUMN asset_id VARCHAR"))
+            except Exception: pass
+
+def seed_flagship_demo_incident(db):
+    """Ensures flagship demo incident CF-2026-9999 exists in database with full audit logs and authority branding."""
+    try:
+        flagship = db.query(Complaint).filter(Complaint.id == "CF-2026-9999").first()
+        if not flagship:
+            print("Seeding Flagship Demo Incident #CF-2026-9999...")
+            dept = db.query(Department).filter(Department.code == "ELEC").first()
+            worker = db.query(Worker).filter(Worker.name.like("%Karthik%")).first()
+            user = db.query(User).first()
+
+            c9999 = Complaint(
+                id="CF-2026-9999",
+                user_id=user.id if user else None,
+                title="Electrical Transformer Sparking outside Katpadi Junction",
+                description="High voltage power distribution transformer sparking heavily and emitting smoke outside Katpadi Junction approach road.",
+                category="Electrical Transformer",
+                severity="critical",
+                status="in_progress",
+                domain_type="utility_provider",
+                responsible_authority="TANGEDCO Electricity Board",
+                ownership_reasoning="Public utility infrastructure detected outside gated community boundary on state utility easement. Routed autonomously to TANGEDCO Electricity Board.",
+                department_id=dept.id if dept else None,
+                assigned_worker_id=worker.id if worker else None,
+                address="Katpadi Junction Approach Road, Katpadi, Vellore, Tamil Nadu",
+                latitude=12.9698,
+                longitude=79.1378,
+                ward="Ward 1 - Katpadi (Vellore)",
+                estimated_sla_hours=6,
+                created_at=datetime.utcnow() - timedelta(hours=2)
+            )
+            db.add(c9999)
+            db.commit()
+
+            # Audit logs for CF-2026-9999
+            logs = [
+                ComplaintStatusLog(
+                    complaint_id="CF-2026-9999",
+                    status_from=None,
+                    status_to="submitted",
+                    updated_by_agent="Civic Context Intelligence Agent",
+                    reasoning_notes="Autonomous AI Ownership Engine matched incident to TANGEDCO Electricity Board based on visual cues, spatial boundary geocoding, and high voltage grid signatures.",
+                    timestamp=datetime.utcnow() - timedelta(hours=2)
+                ),
+                ComplaintStatusLog(
+                    complaint_id="CF-2026-9999",
+                    status_from="submitted",
+                    status_to="in_progress",
+                    updated_by_agent="TANGEDCO Emergency Cell",
+                    reasoning_notes="Dispatched Senior Electrical Field Engineer T. Karthik to inspect Katpadi Grid #4 Transformer. SLA Target: 6 Hours.",
+                    timestamp=datetime.utcnow() - timedelta(hours=1)
+                )
+            ]
+            for l in logs:
+                db.add(l)
+            db.commit()
+            print("Flagship Incident #CF-2026-9999 successfully seeded.")
+    except Exception as e:
+        print(f"Notice during flagship incident check: {e}")
+
 def init_db():
     Base.metadata.create_all(bind=engine)
+    check_sqlite_columns()
     db = SessionLocal()
 
-    # Re-seed if no complaints exist or refresh
+    # If DB has departments, just ensure assets & flagship incident exist
     if db.query(Department).first():
-        print("Database already initialized.")
+        print("Database already initialized. Ensuring Digital Twin Assets and Flagship Incident CF-2026-9999 exist...")
+        from app.tools.asset_tools import seed_assets_if_empty
+        seed_assets_if_empty()
+        seed_flagship_demo_incident(db)
         db.close()
         return
 
@@ -71,7 +154,7 @@ def init_db():
         db.refresh(user)
         user_objects.append(user)
 
-    # 4. Seed Initial Complaints in Vellore, Tamil Nadu
+    # 4. Seed Initial Complaints
     sample_complaints = [
         {
             "id": "CF-2026-2001",
@@ -81,6 +164,9 @@ def init_db():
             "category": "Garbage",
             "severity": "high",
             "status": "in_progress",
+            "domain_type": "public_infrastructure",
+            "responsible_authority": "Vellore Municipal Corporation",
+            "ownership_reasoning": "Public road and right-of-way infrastructure identified in Ward 2.",
             "department_id": dept_objects["SAN"].id,
             "assigned_worker_id": worker_objects[1].id,
             "address": "Sathuvachari Phase 2, Near Bus Depot, Vellore, Tamil Nadu",
@@ -93,18 +179,21 @@ def init_db():
         {
             "id": "CF-2026-2002",
             "user_id": user_objects[0].id,
-            "title": "Deep Pothole on Katpadi Main Road",
-            "description": "Crater pothole near Katpadi Railway Station approach road. Dangerous for two-wheelers at night.",
-            "category": "Road damage",
+            "title": "Elevator Stuck in Block A Elevator Shaft",
+            "description": "Elevator in Tower A, Greenwood Heights stuck between 3rd and 4th floors with grinding noise.",
+            "category": "Lift / Elevator",
             "severity": "critical",
             "status": "submitted",
-            "department_id": dept_objects["ROAD"].id,
+            "domain_type": "residential_community",
+            "responsible_authority": "Greenwood Heights Residential Association",
+            "ownership_reasoning": "Private residential tower common area infrastructure. Mapped to Greenwood Heights Block A Lift Tower A.",
+            "department_id": dept_objects["SAN"].id,
             "assigned_worker_id": worker_objects[0].id,
-            "address": "Katpadi Main Road, Near Station Flyover, Vellore, Tamil Nadu",
+            "address": "Greenwood Heights Gated Society, Block A, Katpadi, Vellore",
             "latitude": 12.9698,
             "longitude": 79.1378,
             "ward": "Ward 1 - Katpadi (Vellore)",
-            "estimated_sla_hours": 24,
+            "estimated_sla_hours": 12,
             "created_at": datetime.utcnow() - timedelta(hours=2)
         },
         {
@@ -115,13 +204,16 @@ def init_db():
             "category": "Water supply",
             "severity": "high",
             "status": "resolved",
+            "domain_type": "utility_provider",
+            "responsible_authority": "TWAD Board",
+            "ownership_reasoning": "State bulk water main transmission conduit located on public road easement.",
             "department_id": dept_objects["WAT"].id,
             "assigned_worker_id": worker_objects[3].id,
             "address": "Bagayam Road, Near CMC College Campus, Vellore, Tamil Nadu",
             "latitude": 12.8790,
             "longitude": 79.1305,
             "ward": "Ward 4 - Bagayam / CMC (Vellore)",
-            "estimated_sla_hours": 24,
+            "estimated_sla_hours": 18,
             "resolved_at": datetime.utcnow() - timedelta(hours=1),
             "created_at": datetime.utcnow() - timedelta(hours=18)
         }
@@ -138,10 +230,14 @@ def init_db():
             status_from=None,
             status_to=complaint.status,
             updated_by_agent="PlannerAgent",
-            reasoning_notes=f"Auto-routed issue to {complaint.category} department with severity {complaint.severity}."
+            reasoning_notes=f"Auto-routed issue to {complaint.category} department under {complaint.responsible_authority}."
         )
         db.add(log)
         db.commit()
+
+    from app.tools.asset_tools import seed_assets_if_empty
+    seed_assets_if_empty()
+    seed_flagship_demo_incident(db)
 
     print("Vellore Database seeding completed successfully.")
     db.close()
